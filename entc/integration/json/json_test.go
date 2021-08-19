@@ -115,6 +115,35 @@ func TestPostgres(t *testing.T) {
 	}
 }
 
+func TestCockroach(t *testing.T) {
+	for version, port := range map[string]int{"13": 26257} {
+		t.Run(version, func(t *testing.T) {
+			dsn := fmt.Sprintf("host=localhost port=%d user=root dbname=defaultdb sslmode=disable", port)
+			db, err := sql.Open(dialect.Postgres, dsn)
+			require.NoError(t, err)
+			defer db.Close()
+			ctx := context.Background()
+			err = db.Exec(ctx, "CREATE DATABASE json", []interface{}{}, nil)
+			require.NoError(t, err, "creating database")
+			defer db.Exec(ctx, "DROP DATABASE IF EXISTS json", []interface{}{}, nil)
+
+			client, err := ent.Open(dialect.Postgres, dsn+" dbname=json")
+			require.NoError(t, err, "connecting to json database")
+			defer client.Close()
+			err = client.Schema.Create(context.Background())
+			require.NoError(t, err)
+
+			URL(t, client)
+			Dirs(t, client)
+			Ints(t, client)
+			Floats(t, client)
+			Strings(t, client)
+			RawMessage(t, client)
+			Predicates(t, client)
+		})
+	}
+}
+
 func TestSQLite(t *testing.T) {
 	client, err := ent.Open("sqlite3", "file:ent?mode=memory&cache=shared&_fk=1")
 	require.NoError(t, err)

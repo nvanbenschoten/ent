@@ -105,6 +105,24 @@ func TestPostgres(t *testing.T) {
 	}
 }
 
+func TestCockroach(t *testing.T) {
+	for version, port := range map[string]int{"13": 26257} {
+		t.Run(version, func(t *testing.T) {
+			extraOpts := "default_int_size=4 reorder_joins_limit=4"
+			client := enttest.Open(t, dialect.Postgres, fmt.Sprintf("host=localhost port=%d user=root dbname=defaultdb sslmode=disable %s", port, extraOpts), opts)
+			defer client.Close()
+
+			for _, tt := range tests {
+				name := runtime.FuncForPC(reflect.ValueOf(tt).Pointer()).Name()
+				t.Run(name[strings.LastIndex(name, ".")+1:], func(t *testing.T) {
+					drop(t, client)
+					tt(t, client)
+				})
+			}
+		})
+	}
+}
+
 var (
 	opts = enttest.WithMigrateOptions(
 		migrate.WithDropIndex(true),
@@ -1646,9 +1664,14 @@ func Lock(t *testing.T, client *ent.Client) {
 		require.NoError(t, err)
 		tx3, err := client.Tx(ctx)
 		require.NoError(t, err)
+		tx4, err := client.Tx(ctx)
+		require.NoError(t, err)
 		tx1.Pet.Query().Where(pet.ID(xabi.ID)).ForShare().OnlyX(ctx)
 		tx2.Pet.Query().Where(pet.ID(xabi.ID)).ForShare().OnlyX(ctx)
-		_, err = tx3.Pet.Query().
+		require.NoError(t, tx1.Rollback())
+		require.NoError(t, tx2.Rollback())
+		tx3.Pet.Query().Where(pet.ID(xabi.ID)).ForUpdate().OnlyX(ctx)
+		_, err = tx4.Pet.Query().
 			Where(pet.ID(xabi.ID)).
 			ForUpdate(
 				sql.WithLockTables(pet.Table),
@@ -1656,9 +1679,8 @@ func Lock(t *testing.T, client *ent.Client) {
 			).
 			Only(ctx)
 		require.Error(t, err)
-		require.NoError(t, tx1.Rollback())
-		require.NoError(t, tx2.Rollback())
 		require.NoError(t, tx3.Rollback())
+		require.NoError(t, tx4.Rollback())
 	})
 }
 

@@ -6,19 +6,20 @@ package main
 
 import (
 	"context"
+	"entgo.io/ent/dialect"
 	"fmt"
 	"log"
 
 	"entgo.io/ent/examples/o2obidi/ent"
 	"entgo.io/ent/examples/o2obidi/ent/user"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 )
 
 func Example_O2OBidi() {
-	client, err := ent.Open("sqlite3", "file:ent?mode=memory&cache=shared&_fk=1")
+	client, err := ent.Open(dialect.Postgres, "user=root port=26257 sslmode=disable")
 	if err != nil {
-		log.Fatalf("failed opening connection to sqlite: %v", err)
+		log.Fatalf("failed opening connection to cockroachdb: %v", err)
 	}
 	defer client.Close()
 	ctx := context.Background()

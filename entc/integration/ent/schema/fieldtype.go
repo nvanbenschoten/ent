@@ -117,7 +117,8 @@ func (FieldType) Fields() []ent.Field { //nolint:funlen
 			Optional().
 			GoType(MAC{}).
 			SchemaType(map[string]string{
-				dialect.Postgres: "macaddr",
+				// NOTE: CockroachDB does not support this type.
+				// dialect.Postgres: "macaddr",
 			}).
 			Validate(func(s string) error {
 				_, err := net.ParseMAC(s)

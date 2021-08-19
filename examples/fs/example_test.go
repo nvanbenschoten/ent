@@ -9,17 +9,18 @@ import (
 	"fmt"
 	"log"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/examples/fs/ent"
 	"entgo.io/ent/examples/fs/ent/file"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 )
 
 func Example_RecursiveTraversal() {
-	client, err := ent.Open("sqlite3", "file:ent?mode=memory&cache=shared&_fk=1")
+	client, err := ent.Open(dialect.Postgres, "user=root port=26257 sslmode=disable")
 	if err != nil {
-		log.Fatalf("failed opening connection to sqlite: %v", err)
+		log.Fatalf("failed opening connection to cockroachdb: %v", err)
 	}
 	defer client.Close()
 	ctx := context.Background()
